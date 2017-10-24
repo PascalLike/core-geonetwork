@@ -61,8 +61,12 @@
             angular.extend(this.map, options);
           };
 
+          var addWMSToMap = function(link, md) {       	  
+            // Link is localized when using associated resource service
+            // and is not when using search
+            var url = $filter('gnLocalized')(link.url) || link.url;
 
-          var addWMSToMap = function(link, md) {
+
             var isServiceLink =
                gnSearchSettings.mapProtocols.services.indexOf(link.protocol) > -1;
 
