@@ -62,7 +62,7 @@
           };
 
 
-          var addWMSToMap = function(link, md) {
+          var addWMSToMap = function(link, md) {       	  
             // Link is localized when using associated resource service
             // and is not when using search
             var url = $filter('gnLocalized')(link.url) || link.url;

@@ -87,7 +87,10 @@
     var layer = this.layer,
         map = this.map,
         coordinates = this.coordinates;
+    
+    var uuid = layer.get('MDuuid');
 
+   
     var uri = layer.getSource().getGetFeatureInfoUrl(
         coordinates,
         map.getView().getResolution(),
@@ -130,17 +133,35 @@
 
         }.bind(this));
 
+        this.dictionary = this.$http.get('../api/records/'+uuid+'/featureCatalog?_content_type=json')
+        .then(function(response) {               
+            return response.data['decodeMap'];
+        }.bind(this), function(err) {
+        	return null;
+        }.bind(this));
+
   };
 
   geonetwork.GnFeaturesGFILoader.prototype.getBsTableConfig = function() {
     var pageList = [5, 10, 50, 100];
     var exclude = ['FID', 'boundedBy', 'the_geom', 'thegeom'];
     var $filter = this.$injector.get('$filter');
+    var $q = this.$injector.get('$q');
 
-    return this.promise.then(function(features) {
+    var promises = [
+      this.promise,
+      this.dictionary
+      ];
+
+    return $q.all(promises).then(function(data) {
+
+      features = data[0];
+      dictionary = data[1];
+
       if (!features || features.length == 0) {
         return;
       }
+
       var columns = Object.keys(features[0].getProperties()).map(function(x) {
         return {
           field: x,
@@ -150,6 +171,17 @@
           visible: exclude.indexOf(x) == -1
         };
       });
+
+      if(dictionary  != null) {
+        for (var i = 0; i < columns.length; i++) {
+          if(!angular.isUndefined(dictionary[columns[i]['field']])) {
+            var title = dictionary[columns[i]['field']][0];
+            var desc = dictionary[columns[i]['field']][1];
+            columns[i]['title']  = title;
+            columns[i]['titleTooltip']  = desc;
+          } 
+        }
+      }
 
       return {
         columns: columns,
