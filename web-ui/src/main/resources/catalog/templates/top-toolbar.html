@@ -113,7 +113,7 @@
           role="button" aria-expanded="false">
           <img class="img-circle"
             data-ng-src="//gravatar.com/avatar/{{user.email | md5}}?s=18"/>&nbsp;
-          <div class="gn-user-info">
+          <div class="gn-user-info" id="gn-user-info-id">
             {{user.name}} {{user.surname}}<br>
             <span class="gn-user-role">{{user.profile | lowercase | translate}}</span>
           </div>
@@ -140,6 +140,7 @@
         <a href="{{gnCfg.mods.signin.appUrl | signInLink}}"
            title="{{'signIn'|translate}}"
            class="dropdown-toggle"
+           id="signin-dropdown-button"
            data-ng-keypress="$event"
            data-ng-mouseover="focusLoginPopup()">
           <i class="fa fa-sign-in"/>&nbsp;

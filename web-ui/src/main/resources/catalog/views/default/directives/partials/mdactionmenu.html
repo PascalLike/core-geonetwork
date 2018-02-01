@@ -4,6 +4,7 @@
     <button type="button"
             title="{{'manageRecord' | translate}}"
             class="btn btn-default dropdown-toggle"
+            id="manage-record-button-id"
             data-toggle="dropdown"
             aria-expanded="false">
       <i class="fa fa-cog"/>
@@ -32,7 +33,7 @@
                     (!md.hasValidation() ? 'mdnovalidation':
                       (allowPublishInvalidMd() === false ? 'mdinvalidcantpublish' : 'mdinvalid'))) : '') | translate }}"
       >
-        <a data-ng-click="mdService.publish(md, undefined, undefined, getCatScope())">
+        <a data-ng-click="mdService.publish(md, undefined, undefined, getCatScope())" id="manage-record-publish-id">
           <i class="fa"
              data-ng-class="md.isPublished() ? 'fa-lock' : 'fa-unlock'"></i>&nbsp;
           <span data-ng-if="md.isPublished()"

@@ -28,6 +28,7 @@
               data-ng-click="selectSchema(s.name)">
             <h4 class="list-group-item-heading">
               <i class="fa"
+                 id={{s.name}}
                  data-ng-class="isSchemaSelected(s.name) ? 'fa-check-square-o' : 'fa-square-o'"/>&nbsp
                  {{s.titles[iso2lang] || s.titles['en'] || s.name}} ({{s.name}})
             </h4>
@@ -40,14 +41,14 @@
           <div class="col-lg-12">
             <button type="button" class="btn btn-primary btn-block"
                     data-ng-disabled="!selectedSchemas.length > 0 || sampleLoadRunning === true || tplLoadRunning === true"
-                    data-ng-click="loadTemplates()">
+                    data-ng-click="loadTemplates()" id="loadTemplatesButton">
               <i class="fa gn-recordtype-y"/>&nbsp;
               <span data-translate="">loadTemplatesForSelectedSchema</span>
             </button>
             <br/>
             <button type="button" class="btn btn-primary btn-block"
                     data-ng-disabled="!selectedSchemas.length > 0 || sampleLoadRunning === true || tplLoadRunning === true"
-                    data-ng-click="loadSamples()">
+                    data-ng-click="loadSamples()" id="loadSamplesButton">
               <i class="fa gn-recordtype-n"/>&nbsp;
               <span data-translate="">loadSamplesForSelectedSchema</span>
             </button>
