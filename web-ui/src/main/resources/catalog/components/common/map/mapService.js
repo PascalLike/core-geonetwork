@@ -637,6 +637,12 @@
 
             var options = layerOptions || {};
 
+            // Workaround for ESRI
+            // where STYLES is a mandatory field
+            if(layerParams.STYLES==='') {
+              options.url += "STYLES=";
+            }
+
             var source, olLayer;
             if (gnViewerSettings.singleTileWMS) {
               var config = {
@@ -724,10 +730,19 @@
                       tileEvent.currentTarget.getParams().LAYERS :
                       layerParams.LAYERS;
 
-                  var msg = $translate.instant('layerTileLoadError', {
-                    url: url,
-                    layer: layer
-                  });
+
+                  var msg = '';
+                  if(layerParams.STYLES==='') {
+                    msg = $translate.instant('layerTileLoadAndMissingStyleError', {
+                      url: url,
+                      layer: layer
+                    });
+                  } else {
+                    msg = $translate.instant('layerTileLoadError', {
+                      url: url,
+                      layer: layer
+                    });
+                  }
                   console.warn(msg);
                   $rootScope.$broadcast('StatusUpdated', {
                     msg: msg,
@@ -841,10 +856,6 @@
               if (requestedStyle) {
                 layerParam.STYLES = requestedStyle.Name;
               } else {
-                // STYLES is mandatory parameter.
-                // ESRI will complain on this.
-                // Even &STYLES&... return an error on ESRI.
-                // TODO: Fix or workaround
                 layerParam.STYLES = '';
               }
 
