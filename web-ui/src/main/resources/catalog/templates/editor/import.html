@@ -289,25 +289,40 @@
             <p data-ng-show="report.message" translate="">
               {{report.message}}
             </p>
-            <p>
-              <div data-ng-repeat="(key, value) in report.infos">
+            <div class="list-group ng-scope" data-ng-show="report.errorMessages" translate="">
+            <li class="list-group-item ng-scope text-danger list-group-item-import" data-ng-repeat="errorMsg in report.errorMessages track by $index">
+              <strong class="ng-binding">{{errorMsg.xpath}}</strong>
+              <p class="ng-binding">{{errorMsg.message}}</p>
+            </li>
+            </div>
+            
+              <p data-ng-repeat="(key, value) in report.infos">
                 <span>{{value.message}}</span>
-              </div>
+              </p>
               <!--id and uuid from single import-->
-              <div data-ng-repeat="(key, value) in report.metadataInfos">
-                <span>{{value[0].message}}</span>
-                <a href='#/metadata/{{key}}?redirectUrl=catalog.edit'
-                   title="{{'edit' | translate}}">
-                  <i class='fa fa-pencil'></i>
-                </a>
-              </div>
-              <div data-ng-repeat="(key, value) in report.errors">
-                <span>{{value.message}}</span>
-              </div>
-              <!--Only one exception from single import-->
-              <span ng-show="report.code">{{report.description}}</span>
+            <p data-ng-repeat="(key, value) in report.metadataInfos">
+              <span>{{value[0].message}}</span> <a
+                href='#/metadata/{{key}}?redirectUrl=catalog.edit'
+                title="{{'edit' | translate}}"> <i class='fa fa-pencil'></i>
+              </a>
             </p>
-          </div>
+
+            <ul class="list-group ng-scope"
+              data-ng-repeat="(key, value) in report.errors">
+              <li
+                class="list-group-item ng-scope text-danger list-group-item-import"
+                data-ng-show="value.message">{{value.message}}</li>
+              <li
+                class="list-group-item ng-scope text-danger list-group-item-import"
+                data-ng-show="value.errorMessages"
+                data-ng-repeat="errorMsg in value.errorMessages track by $index">
+                <strong class="ng-binding">{{errorMsg.xpath}}</strong>
+                <p class="ng-binding">{{errorMsg.message}}</p>
+              </li>
+
+            </ul>
+            <!--Only one exception from single import-->
+              <p ng-show="report.code">{{report.description}}</p>
         </div>
       </div>
     </div>

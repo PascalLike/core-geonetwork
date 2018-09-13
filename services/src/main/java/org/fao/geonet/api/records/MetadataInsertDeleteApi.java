@@ -71,6 +71,7 @@ import org.fao.geonet.domain.ReservedGroup;
 import org.fao.geonet.domain.ReservedOperation;
 import org.fao.geonet.domain.UserGroup;
 import org.fao.geonet.exceptions.BadParameterEx;
+import org.fao.geonet.exceptions.SchematronValidationErrorEx;
 import org.fao.geonet.exceptions.XSDValidationErrorEx;
 import org.fao.geonet.kernel.AccessManager;
 import org.fao.geonet.kernel.DataManager;
@@ -276,6 +277,7 @@ public class MetadataInsertDeleteApi {
 
         return report;
     }
+
 
 
     @ApiOperation(
@@ -505,7 +507,17 @@ public class MetadataInsertDeleteApi {
                             );
                             report.incrementProcessedRecords();
                         }
-                    } catch (Exception e) {
+                    }  catch (SchematronValidationErrorEx e) {
+                        report.addError(new ValidationErrorsException(e));
+                        report.addInfos(String.format(
+                            "Failed to import MEF file '%s'. Check error for details.",
+                            f.getFileName().toString()));
+                    }  catch (XSDValidationErrorEx e) {
+                        report.addError(new ValidationErrorsException(e));
+                        report.addInfos(String.format(
+                            "Failed to import MEF file '%s'. Check error for details.",
+                            f.getFileName().toString()));
+                    }  catch (Exception e) {
                         report.addError(e);
                         report.addInfos(String.format(
                             "Failed to import MEF file '%s'. Check error for details.",
@@ -518,7 +530,11 @@ public class MetadataInsertDeleteApi {
                             uuidProcessing, group, category, rejectIfInvalid, false, transformWith, schema, extra, request);
                         report.addMetadataInfos(pair.one(), String.format(
                             "Metadata imported from server folder with UUID '%s'", pair.two())
-                        );
+                         );
+                    } catch (XSDValidationErrorEx e) {
+                        report.addError(new ValidationErrorsException(e));
+                    } catch (SchematronValidationErrorEx e) {
+                        report.addError(new ValidationErrorsException(e));
                     } catch (Exception e) {
                         report.addError(e);
                     }
@@ -530,6 +546,7 @@ public class MetadataInsertDeleteApi {
         report.close();
         return report;
     }
+
 
 
     @ApiOperation(
@@ -710,8 +727,8 @@ public class MetadataInsertDeleteApi {
         } catch (IOException e) {
             Log.warning(Geonet.DATA_MANAGER, String.format(
                 "Error while copying metadata resources. Error is %s. " +
-                    "Metadata is created but without resources from the source record with id '%d':",
-                    e.getMessage(), newId));
+                "Metadata is created but without resources from the source record with id '%d':",
+                e.getMessage(), newId));
         }
         if (hasCategoryOfSource) {
             final Collection<MetadataCategory> categories =
@@ -723,7 +740,7 @@ public class MetadataInsertDeleteApi {
             } catch (Exception e) {
                 Log.warning(Geonet.DATA_MANAGER, String.format(
                     "Error while copying source record category to new record. Error is %s. " +
-                        "Metadata is created but without the categories from the source record with id '%d':",
+                    "Metadata is created but without the categories from the source record with id '%d':",
                     e.getMessage(), newId));
             }
         }
@@ -736,7 +753,7 @@ public class MetadataInsertDeleteApi {
             } catch (Exception e) {
                 Log.warning(Geonet.DATA_MANAGER, String.format(
                     "Error while setting record category to new record. Error is %s. " +
-                        "Metadata is created but without the requested categories.",
+                    "Metadata is created but without the requested categories.",
                     e.getMessage(), newId));
             }
         }
@@ -1052,7 +1069,7 @@ public class MetadataInsertDeleteApi {
         if (StringUtils.isEmpty(xml) && StringUtils.isEmpty(filename)) {
             throw new IllegalArgumentException(String.format(
                 "A context as XML will be saved as a record attachement. " +
-                    "You MUST provide a filename in this case."));
+                "You MUST provide a filename in this case."));
         }
 
         ServiceContext context = ApiUtils.createServiceContext(request);
@@ -1143,7 +1160,7 @@ public class MetadataInsertDeleteApi {
             Map<String, Object> onlineSrcParams = new HashMap<String, Object>();
             onlineSrcParams.put("thumbnail_url",
                 sm.getNodeURL() +
-                    String.format("api/records/%s/attachments/%s", uuid, overviewFilename));
+                String.format("api/records/%s/attachments/%s", uuid, overviewFilename));
             transformedMd = Xml.transform(transformedMd, schemaMan.getSchemaDir("iso19139").resolve("process").resolve("thumbnail-add.xsl"), onlineSrcParams);
             dm.updateMetadata(context, id.get(0), transformedMd, false, true, false, context.getLanguage(), null, true);
         }
@@ -1193,7 +1210,7 @@ public class MetadataInsertDeleteApi {
             if (schema == null) {
                 throw new IllegalArgumentException(
                     "Can't detect schema for metadata automatically. " +
-                        "You could try to force the schema with the schema parameter."
+                    "You could try to force the schema with the schema parameter."
                 );
                 // TODO: Report what are the supported schema
             }
@@ -1205,7 +1222,9 @@ public class MetadataInsertDeleteApi {
             try {
                 DataManager.validateMetadata(schema, xmlElement, context);
             } catch (XSDValidationErrorEx e) {
-                throw new IllegalArgumentException(e);
+                throw new ValidationErrorsException(e);
+            } catch (SchematronValidationErrorEx e) {
+                throw new ValidationErrorsException(e);
             }
         }
 
@@ -1229,8 +1248,8 @@ public class MetadataInsertDeleteApi {
             if (md != null) {
                 throw new IllegalArgumentException(String.format(
                     "A record with UUID '%s' already exist and you choose no " +
-                        "action on UUID processing. Choose to overwrite existing record " +
-                        "or to generate a new UUID.",
+                    "action on UUID processing. Choose to overwrite existing record " +
+                    "or to generate a new UUID.",
                     uuid
                 ));
             }

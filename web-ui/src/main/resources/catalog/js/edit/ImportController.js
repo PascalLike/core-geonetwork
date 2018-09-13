@@ -34,7 +34,7 @@
     'gn_category',
     'blueimp.fileupload',
     'gn_formfields_directive'
-  ]);
+    ]);
 
   /**
    * Metadata import controller.
@@ -51,19 +51,19 @@
       $scope.file_type = 'single';
       $scope.queue = [];
       $scope.params = {
-        metadataType: 'METADATA',
-        uuidProcessing: 'NOTHING',
-        xml: '',
-        file: '',
-        url: '',
-        serverFolder: '',
-        recursiveSearch: false,
-        rejectIfInvalid: false,
-        publishToAll: false,
-        assignToCatalog: true,
-        transformWith: '_none_',
-        group: null,
-        category: null
+          metadataType: 'METADATA',
+          uuidProcessing: 'NOTHING',
+          xml: '',
+          file: '',
+          url: '',
+          serverFolder: '',
+          recursiveSearch: false,
+          rejectIfInvalid: false,
+          publishToAll: false,
+          assignToCatalog: true,
+          transformWith: '_none_',
+          group: null,
+          category: null
       };
       $scope.importing = false;
 
@@ -76,25 +76,70 @@
       };
       var uploadImportMdError = function(evt, data, o) {
         $scope.importing = false;
-        $scope.reports.push(data.jqXHR.responseJSON);
+        $scope.reports.push(parseValidationErrorsException(data.jqXHR.responseJSON));
       };
 
       // upload directive options
       $scope.mdImportUploadOptions = {
-        autoUpload: false,
-        done: uploadImportMdDone,
-        fail: uploadImportMdError,
-        headers: {'X-XSRF-TOKEN': $rootScope.csrf}
+          autoUpload: false,
+          done: uploadImportMdDone,
+          fail: uploadImportMdError,
+          headers: {'X-XSRF-TOKEN': $rootScope.csrf}
       };
 
 
       var formatExceptionArray = function() {
         if (!angular.isArray($scope.report.exceptions.exception)) {
           $scope.report.exceptions.exception =
-              [$scope.report.exceptions.exception];
+            [$scope.report.exceptions.exception];
         }
-
         $scope.reports.push($scope.report);
+      };
+      var parseValidationErrorsException = function(error) {
+        if(error.data) {
+          if(error.data.message && error.data.message.startsWith("ValidationErrorsException")) {
+            errorReport = JSON.parse(error.data.description);
+            if(angular.isArray(errorReport)) {
+              error.data.errorMessages = errorReport;
+            } else {
+              error.data.errorMessages = [];
+              error.data.errorMessages.push(errorReport);
+            }
+            error.data.description = "";
+          }
+        } else if(error.errors) {
+          subReportErrors = error.errors;
+          for(var i = 0; i<= subReportErrors.length; i++){
+            if(subReportErrors[i] &&
+                subReportErrors[i].stack &&
+                subReportErrors[i].message &&
+                subReportErrors[i].stack.startsWith("org.fao.geonet.api.records.ValidationErrorsException")) {
+              errorReport = JSON.parse(subReportErrors[i].message);
+              if(angular.isArray(errorReport)) {
+                subReportErrors[i].errorMessages = errorReport;
+              } else {
+                subReportErrors[i].errorMessages = [];
+                subReportErrors[i].errorMessages.push(errorReport);
+              }
+              subReportErrors[i].message = "";
+            }
+          }
+
+        } else {
+          if(error.message && error.message.startsWith("ValidationErrorsException")) {
+            errorReport = JSON.parse(error.description);
+            if(angular.isArray(errorReport)) {
+              error.errorMessages = JSON.parse(error.description);
+            } else {
+              error.errorMessages = [];
+              error.errorMessages.push(JSON.parse(error.description));
+            }
+
+
+            error.description = "";
+          }
+        }
+        return error;
       };
       var onSuccessFn = function(response) {
         $scope.importing = false;
@@ -102,17 +147,17 @@
           $scope.report = response.data;
           formatExceptionArray();
         } else {
-          $scope.reports.push(response.data);
+          $scope.reports.push(parseValidationErrorsException(response.data));
         }
         if (response.data.records) {
           $scope.reports.push({success: parseInt(response.data.records) -
-                parseInt((response.data.exceptions &&
+            parseInt((response.data.exceptions &&
                 response.data.exceptions['@count']) || 0)});
         }
       };
       var onErrorFn = function(error) {
         $scope.importing = false;
-        $scope.reports = error;
+        $scope.reports = parseValidationErrorsException(error);
       };
 
       $scope.uploadScope = angular.element('#md-import-file').scope();
@@ -150,9 +195,10 @@
           $scope.importing = true;
           gnMetadataManager.importFromXml(
               $(formId).serialize(), $scope.params.xml).then(
-              onSuccessFn, onErrorFn);
+                  onSuccessFn, onErrorFn);
         }
+
       };
     }
-  ]);
+    ]);
 })();
