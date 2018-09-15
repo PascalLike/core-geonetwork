@@ -108,12 +108,13 @@ public class BaseMetadataValidator implements org.fao.geonet.kernel.datamanager.
                 ((Element) informationalReport).detach();
             }
             List<?> failedAssert = Xml.selectNodes(schemaTronReport,
-                    "geonet:report[@geonet:required = '" + SchematronRequirement.REQUIRED + "']/svrl:schematron-output/svrl:failed-assert",
+                    "geonet:report/svrl:schematron-output/svrl:failed-assert",
                     theNSs);
 
             List<?> failedSchematronVerification = Xml.selectNodes(schemaTronReport,
-                    "geonet:report[@geonet:required = '" + SchematronRequirement.REQUIRED + "']/geonet:schematronVerificationError",
+                    "geonet:report/geonet:schematronVerificationError",
                     theNSs);
+
 
             if ((!failedAssert.isEmpty()) || (!failedSchematronVerification.isEmpty())) {
                 StringBuilder errorReport = new StringBuilder();
