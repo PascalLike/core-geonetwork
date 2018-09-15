@@ -126,8 +126,13 @@
           }
 
         } else {
-          if(error.message && error.message.startsWith("ValidationErrorsException")) {
-            errorReport = JSON.parse(error.description);
+          if(error && error.message && error.message.startsWith("ValidationErrorsException")) {
+            try {
+              errorReport = JSON.parse(error.description);
+            } catch (e) {
+              console.log(e);
+              return error;
+            }
             if(angular.isArray(errorReport)) {
               error.errorMessages = JSON.parse(error.description);
             } else {
