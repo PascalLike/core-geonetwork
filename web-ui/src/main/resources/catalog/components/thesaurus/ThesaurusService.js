@@ -182,6 +182,7 @@
                */
               DEFAULT_NUMBER_OF_SUGGESTIONS: 30,
               getKeywordAutocompleter: function(config) {
+
                 var keywordsAutocompleter = new Bloodhound({
                   datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
                   queryTokenizer: Bloodhound.tokenizers.whitespace,
@@ -212,6 +213,7 @@
                     }
                   }
                 });
+
                 keywordsAutocompleter.initialize();
                 return keywordsAutocompleter;
               },
