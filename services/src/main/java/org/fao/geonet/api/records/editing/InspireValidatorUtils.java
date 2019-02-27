@@ -25,35 +25,26 @@ package org.fao.geonet.api.records.editing;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.exceptions.ServiceNotFoundEx;
-import org.fao.geonet.kernel.setting.SettingManager;
-import org.fao.geonet.kernel.setting.Settings;
+import org.fao.geonet.utils.GeonetHttpRequestFactory;
 import org.fao.geonet.utils.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.client.ClientHttpResponse;
 
 import javassist.NotFoundException;
 
@@ -90,34 +81,29 @@ public class InspireValidatorUtils {
      * @param client the client (optional) (optional)
      * @return true, if successful
      */
-    public static boolean checkServiceStatus(String endPoint, CloseableHttpClient client, SettingManager settingMan) {
+    public static boolean checkServiceStatus(String endPoint) {
 
-        boolean close = false;
-        if (client == null) {
-            client = getHttpClient(settingMan);
-            close = true;
-        }
+        GeonetHttpRequestFactory requestFactory = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class);
         HttpGet request = new HttpGet(endPoint + CheckStatus_URL);
 
         // add request header
         request.addHeader("User-Agent", USER_AGENT);
         request.addHeader("Accept", ACCEPT);
-        HttpResponse response;
+        ClientHttpResponse response = null;
 
         try {
-            response = client.execute(request);
+            response = requestFactory.execute(request);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return true;
+            } else {
+                Log.warning(Log.SERVICE, "INSPIRE service not available: " + endPoint + CheckStatus_URL);
+                return false;
+            }
         } catch (Exception e) {
             Log.warning(Log.SERVICE, "Error calling INSPIRE service: " + endPoint, e);
             return false;
         } finally {
-            if (close) IOUtils.closeQuietly(client);
-        }
-
-        if (response.getStatusLine().getStatusCode() == 200) {
-            return true;
-        } else {
-            Log.warning(Log.SERVICE, "INSPIRE service not available: " + endPoint + CheckStatus_URL);
-            return false;
+            IOUtils.closeQuietly(response);
         }
     }
 
@@ -131,11 +117,14 @@ public class InspireValidatorUtils {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws JSONException the JSON exception
      */
-    private static String uploadMetadataFile(String endPoint, InputStream xml, CloseableHttpClient client)
-            throws IOException, JSONException {
+    private static String uploadMetadataFile(String endPoint, InputStream xml) throws IOException, JSONException {
+
+        GeonetHttpRequestFactory requestFactory = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class);
+
+        HttpPost request = new HttpPost(endPoint + TestObjects_URL + "?action=upload");
+        ClientHttpResponse response = null;
 
         try {
-            HttpPost request = new HttpPost(endPoint + TestObjects_URL + "?action=upload");
 
             request.addHeader("User-Agent", USER_AGENT);
             request.addHeader("Accept", ACCEPT);
@@ -146,17 +135,15 @@ public class InspireValidatorUtils {
 
             request.setEntity(entity);
 
-            HttpResponse response = client.execute(request);
+            response = requestFactory.execute(request);
 
-            if (response.getStatusLine().getStatusCode() == 200) {
-
-                ResponseHandler<String> handler = new BasicResponseHandler();
-                String body = handler.handleResponse(response);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                String body = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8.name());
                 JSONObject jsonRoot = new JSONObject(body);
                 return jsonRoot.getJSONObject("testObject").getString("id");
             } else {
                 Log.warning(Log.SERVICE,
-                        "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestObjects_URL);
+                        "WARNING: INSPIRE service HTTP response: " + response.getStatusCode().name() + " for " + TestObjects_URL);
                 return null;
             }
         } catch (Exception e) {
@@ -172,24 +159,23 @@ public class InspireValidatorUtils {
      * @param client the client (optional)
      * @return the tests
      */
-    private static List<String> getTests(String endPoint, CloseableHttpClient client) {
+    private static List<String> getTests(String endPoint) {
+
+        GeonetHttpRequestFactory requestFactory = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class);
+        HttpGet request = new HttpGet(endPoint + ExecutableTestSuites_URL);
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
+        ClientHttpResponse response;
 
         try {
 
-            HttpGet request = new HttpGet(endPoint + ExecutableTestSuites_URL);
+            response = requestFactory.execute(request);
 
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
-            HttpResponse response;
-
-            response = client.execute(request);
-
-            if (response.getStatusLine().getStatusCode() == 200) {
+            if (response.getStatusCode() == HttpStatus.OK) {
 
                 List<String> testList = new ArrayList<>();
 
-                ResponseHandler<String> handler = new BasicResponseHandler();
-                String body = handler.handleResponse(response);
+                String body = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8.name());
 
                 JSONObject jsonRoot = new JSONObject(body);
 
@@ -213,8 +199,8 @@ public class InspireValidatorUtils {
 
                 return testList;
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
-                        + ExecutableTestSuites_URL);
+                Log.warning(Log.SERVICE,
+                        "WARNING: INSPIRE service HTTP response: " + response.getStatusCode().name() + " for " + ExecutableTestSuites_URL);
                 return null;
             }
         } catch (Exception e) {
@@ -234,11 +220,15 @@ public class InspireValidatorUtils {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws JSONException the JSON exception
      */
-    private static String testRun(String endPoint, String fileId, List<String> testList, String testTitle, CloseableHttpClient client)
+    private static String testRun(String endPoint, String fileId, List<String> testList, String testTitle)
             throws IOException, JSONException {
 
+        GeonetHttpRequestFactory requestFactory = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class);
+
+        HttpPost request = new HttpPost(endPoint + TestRuns_URL);
+        ClientHttpResponse response = null;
+
         try {
-            HttpPost request = new HttpPost(endPoint + TestRuns_URL);
 
             JSONObject json = new JSONObject();
             JSONArray tests = new JSONArray();
@@ -265,14 +255,12 @@ public class InspireValidatorUtils {
             request.setHeader("Content-type", ACCEPT);
             request.addHeader("User-Agent", USER_AGENT);
             request.addHeader("Accept", ACCEPT);
-            HttpResponse response;
 
-            response = client.execute(request);
+            response = requestFactory.execute(request);
 
-            if (response.getStatusLine().getStatusCode() == 201) {
+            if (response.getStatusCode() == HttpStatus.CREATED) {
 
-                ResponseHandler<String> handler = new BasicResponseHandler();
-                String body = handler.handleResponse(response);
+                String body = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8.name());
 
                 JSONObject jsonRoot = new JSONObject(body);
                 String testId = jsonRoot.getJSONObject("EtfItemCollection").getJSONObject("testRuns").getJSONObject("TestRun")
@@ -281,7 +269,7 @@ public class InspireValidatorUtils {
                 return testId;
             } else {
                 Log.warning(Log.SERVICE,
-                        "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestRuns_URL);
+                        "WARNING: INSPIRE service HTTP response: " + response.getStatusCode().name() + " for " + TestRuns_URL);
                 return null;
             }
 
@@ -300,47 +288,40 @@ public class InspireValidatorUtils {
      * @return true, if is ready
      * @throws Exception
      */
-    public static boolean isReady(String endPoint, String testId, CloseableHttpClient client, SettingManager settingMan) throws Exception {
+    public static boolean isReady(String endPoint, String testId) throws Exception {
+
+        GeonetHttpRequestFactory requestFactory = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class);
+
+        HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId + "/progress");
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
+
+        ClientHttpResponse response = null;
 
         if (testId == null) {
             return false;
         }
 
-        boolean close = false;
-        if (client == null) {
-            client = getHttpClient(settingMan);
-            close = true;
-        }
-
         try {
+            response = requestFactory.execute(request);
 
-            HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId + "/progress");
+            if (response.getStatusCode() == HttpStatus.OK) {
 
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
-            HttpResponse response;
-
-            response = client.execute(request);
-
-            if (response.getStatusLine().getStatusCode() == 200) {
-
-                ResponseHandler<String> handler = new BasicResponseHandler();
-                String body = handler.handleResponse(response);
+                String body = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8.name());
 
                 JSONObject jsonRoot = new JSONObject(body);
 
                 // Completed when estimated number of Test Steps is equal to completed Test Steps
                 // Somehow this condition is necessary but not sufficient
                 // so another check on real value of test is evaluated
-                return jsonRoot.getInt("val") == jsonRoot.getInt("max")
-                        & InspireValidatorUtils.isPassed(endPoint, testId, client, settingMan) != null;
+                return jsonRoot.getInt("val") == jsonRoot.getInt("max") & InspireValidatorUtils.isPassed(endPoint, testId) != null;
 
-            } else if (response.getStatusLine().getStatusCode() == 404) {
+            } else if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
 
                 throw new NotFoundException("Test not found");
 
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
+                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusCode().name() + " for "
                         + TestRuns_URL + "?view=progress");
             }
         } catch (NotFoundException e) {
@@ -349,7 +330,7 @@ public class InspireValidatorUtils {
             Log.error(Log.SERVICE, "Exception in INSPIRE service: " + endPoint, e);
             throw e;
         } finally {
-            if (close) IOUtils.closeQuietly(client);
+            IOUtils.closeQuietly(response);
         }
 
         return false;
@@ -364,32 +345,24 @@ public class InspireValidatorUtils {
      * @return the string
      * @throws Exception
      */
-    public static String isPassed(String endPoint, String testId, CloseableHttpClient client, SettingManager settingMan) throws Exception {
+    public static String isPassed(String endPoint, String testId) throws Exception {
 
         if (testId == null) {
             throw new Exception("");
         }
 
-        boolean close = false;
-        if (client == null) {
-            client = getHttpClient(settingMan);
-            close = true;
-        }
+        GeonetHttpRequestFactory requestFactory = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class);
+        HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId);
 
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
+        ClientHttpResponse response = null;
         try {
+            response = requestFactory.execute(request);
 
-            HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId);
+            if (response.getStatusCode() == HttpStatus.OK) {
 
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
-            HttpResponse response;
-
-            response = client.execute(request);
-
-            if (response.getStatusLine().getStatusCode() == 200) {
-
-                ResponseHandler<String> handler = new BasicResponseHandler();
-                String body = handler.handleResponse(response);
+                String body = IOUtils.toString(response.getBody(), StandardCharsets.UTF_8.name());
 
                 JSONObject jsonRoot = new JSONObject(body);
 
@@ -400,19 +373,19 @@ public class InspireValidatorUtils {
                     return null;
                 }
 
-            } else if (response.getStatusLine().getStatusCode() == 404) {
+            } else if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
 
                 throw new NotFoundException("Test not found");
 
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
+                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusCode().name() + " for "
                         + TestRuns_URL + "?view=progress");
             }
         } catch (Exception e) {
             Log.error(Log.SERVICE, "Exception in INSPIRE service: " + endPoint, e);
             throw e;
         } finally {
-            if (close) IOUtils.closeQuietly(client);
+            IOUtils.closeQuietly(response);
         }
 
         return null;
@@ -450,73 +423,33 @@ public class InspireValidatorUtils {
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws JSONException the JSON exception
      */
-    public static String submitFile(String serviceEndpoint, InputStream record, String testTitle, SettingManager settingMan)
-            throws IOException, JSONException {
+    public static String submitFile(String serviceEndpoint, InputStream record, String testTitle) throws IOException, JSONException {
 
-        CloseableHttpClient client = getHttpClient(settingMan);
+        if (InspireValidatorUtils.checkServiceStatus(serviceEndpoint)) {
+            // Get the tests to execute
+            List<String> tests = InspireValidatorUtils.getTests(serviceEndpoint);
+            // Upload file to test
+            String testFileId = InspireValidatorUtils.uploadMetadataFile(serviceEndpoint, record);
 
-        try {
-            if (InspireValidatorUtils.checkServiceStatus(serviceEndpoint, client, settingMan)) {
-                // Get the tests to execute
-                List<String> tests = InspireValidatorUtils.getTests(serviceEndpoint, client);
-                // Upload file to test
-                String testFileId = InspireValidatorUtils.uploadMetadataFile(serviceEndpoint, record, client);
-
-                if (testFileId == null) {
-                    Log.error(Log.SERVICE, "File not valid.", new IllegalArgumentException());
-                    return null;
-                }
-
-                if (tests == null || tests.size() == 0) {
-                    Log.error(Log.SERVICE,
-                            "Default test sequence not supported. Check org.fao.geonet.api.records.editing.InspireValidatorUtils.TESTS_TO_RUN.",
-                            new Exception());
-                    return null;
-                }
-                // Return test id from Inspire service
-                return InspireValidatorUtils.testRun(serviceEndpoint, testFileId, tests, testTitle, client);
-
-            } else {
-                ServiceNotFoundEx ex = new ServiceNotFoundEx(serviceEndpoint);
-                Log.error(Log.SERVICE, "Service unavailable.", ex);
-                throw ex;
+            if (testFileId == null) {
+                Log.error(Log.SERVICE, "File not valid.", new IllegalArgumentException());
+                return null;
             }
-        } finally {
-            client.close();
-        }
-    }
 
-    private static CloseableHttpClient getHttpClient(SettingManager settingMan) {
-        CloseableHttpClient client = HttpClients.createDefault();
-
-        boolean useProxy = settingMan.getValueAsBool(Settings.SYSTEM_PROXY_USE, false);
-        if (useProxy) {
-            String proxyHost = settingMan.getValue(Settings.SYSTEM_PROXY_HOST);
-            String proxyPort = settingMan.getValue(Settings.SYSTEM_PROXY_PORT);
-            String username = settingMan.getValue(Settings.SYSTEM_PROXY_USERNAME);
-            String password = settingMan.getValue(Settings.SYSTEM_PROXY_PASSWORD);
-
-            HttpHost proxy = new HttpHost(proxyHost, Integer.valueOf(proxyPort));
-            boolean isAuthenticationEnabled = !StringUtils.isEmpty(username);
-
-            RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(30000).setConnectTimeout(30000)
-                    .setConnectionRequestTimeout(30000).setProxy(proxy).setAuthenticationEnabled(isAuthenticationEnabled).build();
-
-            if (isAuthenticationEnabled) {
-                CredentialsProvider credsProvider = new BasicCredentialsProvider();
-                credsProvider.setCredentials(new AuthScope(proxy.getHostName(), proxy.getPort()),
-                        new UsernamePasswordCredentials(username, password));
-
-                client = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).setDefaultCredentialsProvider(credsProvider)
-                        .build();
-            } else {
-                client = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
+            if (tests == null || tests.size() == 0) {
+                Log.error(Log.SERVICE,
+                        "Default test sequence not supported. Check org.fao.geonet.api.records.editing.InspireValidatorUtils.TESTS_TO_RUN.",
+                        new Exception());
+                return null;
             }
+            // Return test id from Inspire service
+            return InspireValidatorUtils.testRun(serviceEndpoint, testFileId, tests, testTitle);
+
         } else {
-            client = HttpClients.createDefault();
+            ServiceNotFoundEx ex = new ServiceNotFoundEx(serviceEndpoint);
+            Log.error(Log.SERVICE, "Service unavailable.", ex);
+            throw ex;
         }
-
-        return client;
     }
 
 }

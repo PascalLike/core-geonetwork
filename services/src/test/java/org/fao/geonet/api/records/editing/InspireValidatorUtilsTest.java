@@ -2,18 +2,25 @@ package org.fao.geonet.api.records.editing;
 
 import static org.junit.Assert.assertEquals;
 
-import org.fao.geonet.kernel.setting.SettingManager;
-import org.fao.geonet.kernel.setting.Settings;
+import org.fao.geonet.ApplicationContextHolder;
+import org.fao.geonet.utils.GeonetHttpRequestFactory;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.context.ConfigurableApplicationContext;
 
 import javassist.NotFoundException;
 
 public class InspireValidatorUtilsTest {
 
-    private SettingManager sm = Mockito.mock(SettingManager.class);
-
     private static String URL = "http://inspire-sandbox.jrc.ec.europa.eu/etf-webapp/";
+
+    @Before
+    public void setUp() throws Exception {
+        ConfigurableApplicationContext applicationContext = Mockito.mock(ConfigurableApplicationContext.class);
+        ApplicationContextHolder.set(applicationContext);
+        Mockito.when(applicationContext.getBean(GeonetHttpRequestFactory.class)).thenReturn(new GeonetHttpRequestFactory());
+    }
 
     @Test
     public void testGetReportUrl() {
@@ -34,17 +41,15 @@ public class InspireValidatorUtilsTest {
     @Test
     public void testLifeCycle() {
 
-        sm.setValue(Settings.SYSTEM_PROXY_USE, false);
-
-        // assertEquals(InspireValidatorUtils.checkServiceStatus("http://wrong.url.eu", null, sm), false);
+        // assertEquals(InspireValidatorUtils.checkServiceStatus("http://wrong.url.eu"), false);
 
         // FIRST TEST IF OFFICIAL ETF IS AVAILABLE
         // Needed to avoid GN errors when ETF is not available
-        if (InspireValidatorUtils.checkServiceStatus(URL, null, sm)) {
+        if (InspireValidatorUtils.checkServiceStatus(URL)) {
 
             try {
                 // No file
-                InspireValidatorUtils.submitFile(URL, null, "GN UNIT TEST ", sm);
+                InspireValidatorUtils.submitFile(URL, null, "GN UNIT TEST ");
             } catch (IllegalArgumentException e) {
                 // RIGHT EXCEPTION
             } catch (Exception e) {
@@ -53,7 +58,7 @@ public class InspireValidatorUtilsTest {
 
             try {
                 // Valid but not found test ID
-                InspireValidatorUtils.isReady(URL, "IED123456789012345678901234567890123", null, sm);
+                InspireValidatorUtils.isReady(URL, "IED123456789012345678901234567890123");
                 assertEquals("No exception!", "NotFoundException", "No Exception");
             } catch (NotFoundException e) {
                 // RIGHT EXCEPTION
@@ -63,7 +68,7 @@ public class InspireValidatorUtilsTest {
 
             try {
                 // Test ID in wrong format
-                assertEquals(InspireValidatorUtils.isPassed(URL, "1", null, sm), null);
+                assertEquals(InspireValidatorUtils.isPassed(URL, "1"), null);
             } catch (Exception e) {
                 assertEquals("Unexpected exception.", "Exception", "No Exception");
             }
