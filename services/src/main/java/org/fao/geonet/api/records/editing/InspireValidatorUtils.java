@@ -23,7 +23,12 @@
 
 package org.fao.geonet.api.records.editing;
 
-import javassist.NotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
@@ -42,24 +47,17 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.fao.geonet.ApplicationContextHolder;
 import org.fao.geonet.exceptions.ServiceNotFoundEx;
 import org.fao.geonet.kernel.setting.SettingManager;
 import org.fao.geonet.kernel.setting.Settings;
-import org.fao.geonet.utils.GeonetHttpRequestFactory;
 import org.fao.geonet.utils.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import javassist.NotFoundException;
 
 // A static style interface for methods in Inspire Service.
 // Based on ETF Web API v.2 BETA
@@ -99,7 +97,6 @@ public class InspireValidatorUtils {
 
     private Map<String, String[]> testsuites;
 
-
     public String getDefaultTestSuite() {
         return defaultTestSuite;
     }
@@ -126,7 +123,7 @@ public class InspireValidatorUtils {
      * Check service status.
      *
      * @param endPoint the end point
-     * @param client   the client (optional) (optional)
+     * @param client the client (optional) (optional)
      * @return true, if successful
      */
     public boolean checkServiceStatus(String endPoint, CloseableHttpClient client) {
@@ -149,6 +146,8 @@ public class InspireValidatorUtils {
             Log.warning(Log.SERVICE, "Error calling INSPIRE service: " + endPoint, e);
             return false;
         } finally {
+            request.completed();
+            request.releaseConnection();
             if (close) {
                 IOUtils.closeQuietly(client);
             }
@@ -166,8 +165,8 @@ public class InspireValidatorUtils {
      * Upload metadata file.
      *
      * @param endPoint the end point
-     * @param xml      the xml
-     * @param client   the client (optional)
+     * @param xml the xml
+     * @param client the client (optional)
      * @return the string
      */
     private String uploadMetadataFile(String endPoint, InputStream xml, CloseableHttpClient client) {
@@ -183,17 +182,23 @@ public class InspireValidatorUtils {
 
             request.setEntity(entity);
 
-            HttpResponse response = client.execute(request);
+            try {
+                HttpResponse response = client.execute(request);
 
-            if (response.getStatusLine().getStatusCode() == 200) {
+                if (response.getStatusLine().getStatusCode() == 200) {
 
-                ResponseHandler<String> handler = new BasicResponseHandler();
-                String body = handler.handleResponse(response);
-                JSONObject jsonRoot = new JSONObject(body);
-                return jsonRoot.getJSONObject("testObject").getString("id");
-            } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestObjects_URL);
-                return null;
+                    ResponseHandler<String> handler = new BasicResponseHandler();
+                    String body = handler.handleResponse(response);
+                    JSONObject jsonRoot = new JSONObject(body);
+                    return jsonRoot.getJSONObject("testObject").getString("id");
+                } else {
+                    Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
+                            + TestObjects_URL);
+                    return null;
+                }
+            } finally {
+                request.completed();
+                request.releaseConnection();
             }
         } catch (Exception e) {
             Log.error(Log.SERVICE, "Error calling INSPIRE service: " + endPoint, e);
@@ -204,9 +209,9 @@ public class InspireValidatorUtils {
     /**
      * Gets the tests.
      *
-     * @param endPoint  the end point
+     * @param endPoint the end point
      * @param testsuite
-     * @param client    the client (optional)
+     * @param client the client (optional)
      * @return the tests
      */
     private List<String> getTests(String endPoint, String testsuite, CloseableHttpClient client) {
@@ -214,12 +219,14 @@ public class InspireValidatorUtils {
             testsuite = getDefaultTestSuite();
         }
 
+        HttpGet request = new HttpGet(endPoint + ExecutableTestSuites_URL);
+
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
+
         try {
             String[] tests = testsuites.get(testsuite);
-            HttpGet request = new HttpGet(endPoint + ExecutableTestSuites_URL);
 
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
             HttpResponse response;
 
             response = client.execute(request);
@@ -253,12 +260,16 @@ public class InspireValidatorUtils {
 
                 return testList;
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + ExecutableTestSuites_URL);
+                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
+                        + ExecutableTestSuites_URL);
                 return null;
             }
         } catch (Exception e) {
             Log.error(Log.SERVICE, "Exception in INSPIRE service: " + endPoint, e);
             return null;
+        } finally {
+            request.completed();
+            request.releaseConnection();
         }
     }
 
@@ -266,17 +277,20 @@ public class InspireValidatorUtils {
      * Test run.
      *
      * @param endPoint the end point
-     * @param fileId   the file id
+     * @param fileId the file id
      * @param testList the test list
-     * @param client   the client (optional)
+     * @param client the client (optional)
      * @return the string
-     * @throws IOException   Signals that an I/O exception has occurred.
+     * @throws IOException Signals that an I/O exception has occurred.
      * @throws JSONException the JSON exception
      */
     private String testRun(String endPoint, String fileId, List<String> testList, String testTitle, CloseableHttpClient client) {
-        try {
-            HttpPost request = new HttpPost(endPoint + TestRuns_URL);
+        HttpPost request = new HttpPost(endPoint + TestRuns_URL);
+        request.setHeader("Content-type", ACCEPT);
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
 
+        try {
             JSONObject json = new JSONObject();
             JSONArray tests = new JSONArray();
             JSONObject argumets = new JSONObject();
@@ -299,9 +313,6 @@ public class InspireValidatorUtils {
             StringEntity entity = new StringEntity(json.toString());
             request.setEntity(entity);
 
-            request.setHeader("Content-type", ACCEPT);
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
             HttpResponse response;
 
             response = client.execute(request);
@@ -312,17 +323,22 @@ public class InspireValidatorUtils {
                 String body = handler.handleResponse(response);
 
                 JSONObject jsonRoot = new JSONObject(body);
-                String testId = jsonRoot.getJSONObject("EtfItemCollection").getJSONObject("testRuns").getJSONObject("TestRun").getString("id");
+                String testId = jsonRoot.getJSONObject("EtfItemCollection").getJSONObject("testRuns").getJSONObject("TestRun")
+                        .getString("id");
 
                 return testId;
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestRuns_URL);
+                Log.warning(Log.SERVICE,
+                        "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestRuns_URL);
                 return null;
             }
 
         } catch (Exception e) {
             Log.error(Log.SERVICE, "Exception in INSPIRE service: " + endPoint, e);
             return null;
+        } finally {
+            request.completed();
+            request.releaseConnection();
         }
     }
 
@@ -330,8 +346,8 @@ public class InspireValidatorUtils {
      * Checks if is ready.
      *
      * @param endPoint the end point
-     * @param testId   the test id
-     * @param client   the client (optional)
+     * @param testId the test id
+     * @param client the client (optional)
      * @return true, if is ready
      * @throws Exception
      */
@@ -346,12 +362,11 @@ public class InspireValidatorUtils {
             close = true;
         }
 
+        HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId + "/progress");
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
+
         try {
-
-            HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId + "/progress");
-
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
             HttpResponse response;
 
             response = client.execute(request);
@@ -373,7 +388,8 @@ public class InspireValidatorUtils {
                 throw new NotFoundException("Test not found");
 
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestRuns_URL + "?view=progress");
+                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
+                        + TestRuns_URL + "?view=progress");
             }
         } catch (NotFoundException e) {
             throw e;
@@ -381,6 +397,9 @@ public class InspireValidatorUtils {
             Log.error(Log.SERVICE, "Exception in INSPIRE service: " + endPoint, e);
             throw e;
         } finally {
+            request.completed();
+            request.releaseConnection();
+
             if (close) {
                 IOUtils.closeQuietly(client);
             }
@@ -393,8 +412,8 @@ public class InspireValidatorUtils {
      * Checks if is passed.
      *
      * @param endPoint the end point
-     * @param testId   the test id
-     * @param client   the client (optional)
+     * @param testId the test id
+     * @param client the client (optional)
      * @return the string
      * @throws Exception
      */
@@ -410,12 +429,12 @@ public class InspireValidatorUtils {
             close = true;
         }
 
+        HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId);
+
+        request.addHeader("User-Agent", USER_AGENT);
+        request.addHeader("Accept", ACCEPT);
+
         try {
-
-            HttpGet request = new HttpGet(endPoint + TestRuns_URL + "/" + testId);
-
-            request.addHeader("User-Agent", USER_AGENT);
-            request.addHeader("Accept", ACCEPT);
             HttpResponse response;
 
             response = client.execute(request);
@@ -428,7 +447,8 @@ public class InspireValidatorUtils {
                 JSONObject jsonRoot = new JSONObject(body);
 
                 try {
-                    return jsonRoot.getJSONObject("EtfItemCollection").getJSONObject("testRuns").getJSONObject("TestRun").getString("status");
+                    return jsonRoot.getJSONObject("EtfItemCollection").getJSONObject("testRuns").getJSONObject("TestRun")
+                            .getString("status");
                 } catch (JSONException e) {
                     return null;
                 }
@@ -438,12 +458,15 @@ public class InspireValidatorUtils {
                 throw new NotFoundException("Test not found");
 
             } else {
-                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for " + TestRuns_URL + "?view=progress");
+                Log.warning(Log.SERVICE, "WARNING: INSPIRE service HTTP response: " + response.getStatusLine().getStatusCode() + " for "
+                        + TestRuns_URL + "?view=progress");
             }
         } catch (Exception e) {
             Log.error(Log.SERVICE, "Exception in INSPIRE service: " + endPoint, e);
             throw e;
         } finally {
+            request.completed();
+            request.releaseConnection();
             if (close) {
                 IOUtils.closeQuietly(client);
             }
@@ -452,12 +475,11 @@ public class InspireValidatorUtils {
         return null;
     }
 
-
     /**
      * Gets the report url.
      *
      * @param endPoint the end point
-     * @param testId   the test id
+     * @param testId the test id
      * @return the report url
      */
     public String getReportUrl(String endPoint, String testId) {
@@ -469,7 +491,7 @@ public class InspireValidatorUtils {
      * Gets the report url in JSON format.
      *
      * @param endPoint the end point
-     * @param testId   the test id
+     * @param testId the test id
      * @return the report url
      */
     public static String getReportUrlJSON(String endPoint, String testId) {
@@ -480,13 +502,14 @@ public class InspireValidatorUtils {
     /**
      * Submit file.
      *
-     * @param record    the record
+     * @param record the record
      * @param testsuite
      * @return the string
-     * @throws IOException   Signals that an I/O exception has occurred.
+     * @throws IOException Signals that an I/O exception has occurred.
      * @throws JSONException the JSON exception
      */
-    public String submitFile(String serviceEndpoint, InputStream record, String testsuite, String testTitle) throws IOException, JSONException {
+    public String submitFile(String serviceEndpoint, InputStream record, String testsuite, String testTitle)
+            throws IOException, JSONException {
 
         CloseableHttpClient client = getHttpClient();
 
@@ -503,7 +526,9 @@ public class InspireValidatorUtils {
                 }
 
                 if (tests == null || tests.size() == 0) {
-                    Log.error(Log.SERVICE, "Default test sequence not supported. Check org.fao.geonet.api.records.editing.InspireValidatorUtils.TESTS_TO_RUN_TG13.", new Exception());
+                    Log.error(Log.SERVICE,
+                            "Default test sequence not supported. Check org.fao.geonet.api.records.editing.InspireValidatorUtils.TESTS_TO_RUN_TG13.",
+                            new Exception());
                     return null;
                 }
                 // Return test id from Inspire service
@@ -521,8 +546,7 @@ public class InspireValidatorUtils {
 
     private CloseableHttpClient getHttpClient() {
 
-        HttpClientBuilder clientBuilder = ApplicationContextHolder.get().getBean(GeonetHttpRequestFactory.class).getDefaultHttpClientBuilder();
-        CloseableHttpClient client = null;
+        CloseableHttpClient client;
 
         boolean useProxy = settingManager.getValueAsBool(Settings.SYSTEM_PROXY_USE, false);
         if (useProxy) {
@@ -535,22 +559,23 @@ public class InspireValidatorUtils {
             boolean isAuthenticationEnabled = !StringUtils.isEmpty(username);
 
             RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(30000).setConnectTimeout(30000)
-                .setConnectionRequestTimeout(30000).setProxy(proxy).setAuthenticationEnabled(isAuthenticationEnabled).build();
+                    .setConnectionRequestTimeout(30000).setProxy(proxy).setAuthenticationEnabled(isAuthenticationEnabled).build();
 
             if (isAuthenticationEnabled) {
                 CredentialsProvider credsProvider = new BasicCredentialsProvider();
                 credsProvider.setCredentials(new AuthScope(proxy.getHostName(), proxy.getPort()),
-                    new UsernamePasswordCredentials(username, password));
+                        new UsernamePasswordCredentials(username, password));
 
-                client = clientBuilder.setDefaultRequestConfig(defaultRequestConfig).setDefaultCredentialsProvider(credsProvider)
-                    .build();
+                client = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).setDefaultCredentialsProvider(credsProvider)
+                        .build();
             } else {
-                client = clientBuilder.setDefaultRequestConfig(defaultRequestConfig).build();
+                client = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
             }
         } else {
-            client = clientBuilder.build();
+            RequestConfig defaultRequestConfig = RequestConfig.custom().setSocketTimeout(30000).setConnectTimeout(30000)
+                    .setConnectionRequestTimeout(30000).build();
+            client = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
         }
         return client;
     }
 }
-
