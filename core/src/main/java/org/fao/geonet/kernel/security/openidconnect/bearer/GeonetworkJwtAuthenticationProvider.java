@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -52,7 +53,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.BearerTokenAuthenticationToken;
+import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.BearerTokenError;
 import org.springframework.security.oauth2.server.resource.BearerTokenErrorCodes;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -98,6 +99,7 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
                                                UserRolesResolver userRolesResolver,
                                                List<AccessTokenValidator> accessTokenValidators
     ) {
+        System.out.println("Antonio GeonetworkJwtAuthenticationProvider.GeonetworkJwtAuthenticationProvider");
         Assert.notNull(accessTokenParser, "accessTokenParser cannot be null");
         Assert.notNull(userService, "userService cannot be null");
         Assert.notNull(accessTokenValidators, "accessTokenValidators cannot be null");
@@ -115,6 +117,7 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
      * from spring - creates an error return
      */
     private static OAuth2Error invalidToken(String message) {
+        System.out.println("Antonio GeonetworkJwtAuthenticationProvider.invalidToken");
         try {
             return new BearerTokenError(
                 BearerTokenErrorCodes.INVALID_TOKEN,
@@ -135,6 +138,7 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
      * @throws Exception
      */
     public void verifyToken(Map claims, Map userInfoClaims) throws Exception {
+        System.out.println("Antonio GeonetworkJwtAuthenticationProvider.verifyToken");
         for (AccessTokenValidator validator : accessTokenValidators) {
             validator.verifyToken(claims, userInfoClaims);
         }
@@ -150,6 +154,7 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
      * @return
      */
     public UserInfoCacheItem createCacheItem(Authentication authentication) {
+        System.out.println("Antonio GeonetworkJwtAuthenticationProvider.createCacheItem");
         //this is the actual access token
         BearerTokenAuthenticationToken bearer = (BearerTokenAuthenticationToken) authentication;
 
@@ -160,9 +165,11 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
             //      (meaning its not a big deal if we don't).
             jwt = accessTokenParser.parseToken(bearer.getToken());
         } catch (Exception failed) {
+            System.out.println("Antonio GeonetworkJwtAuthenticationProvider invalidToken");
             OAuth2Error invalidToken = invalidToken(failed.getMessage());
             throw new OAuth2AuthenticationException(invalidToken, invalidToken.getDescription(), failed);
         }
+        System.out.println(jwt.toString());
 
         //when is this token valid until
         Instant expireTime = Instant.ofEpochMilli((Long) jwt.get("exp") * 1000);
@@ -171,7 +178,9 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
         if (expireTime.compareTo(Instant.now()) < 0) {
             throw new OAuth2AuthenticationException(invalidToken("access token has expired"));
         }
-
+        System.out.println("1");
+        OAuth2User oAuth2User = null;
+        try {
         //execute the userinfo endpoint
         ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(CLIENTREGISTRATION_NAME);
         OAuth2AccessToken accessToken = new OAuth2AccessToken(
@@ -180,10 +189,16 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
             Instant.ofEpochMilli((Long) jwt.get("iat") * 1000)//issuedAt
             , Instant.ofEpochMilli((Long) jwt.get("exp") * 1000)//ExpiresAt
         );
+        System.out.println(CLIENTREGISTRATION_NAME);
+        System.out.println(clientRegistration.toString());
+        System.out.println(accessToken.toString());
         OAuth2UserRequest oAuth2UserRequest = new OAuth2UserRequest(clientRegistration, accessToken);
-        OAuth2User oAuth2User = oauth2UserService.loadUser(oAuth2UserRequest); //executes userinfo endpoint
-
-
+            oAuth2User = oauth2UserService.loadUser(oAuth2UserRequest); //executes userinfo endpoint
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+        System.out.println("2");
         OidcUserInfo userInfo = new OidcUserInfo(oAuth2User.getAttributes());
 
         try {
@@ -192,7 +207,7 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
             OAuth2Error invalidToken = invalidToken(failed.getMessage());
             throw new OAuth2AuthenticationException(invalidToken, invalidToken.getDescription(), failed);
         }
-
+        System.out.println("3");
 
         List<String> userRoles = null;
         try {
@@ -205,10 +220,10 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
         }
         //user's GrantedAuthorities (i.e. "Administrator" -> ["Administrator","Reviewer","Editor", "RegisteredUser", "Guest"]
         Collection<? extends GrantedAuthority> authorities = oidcRoleProcessor.createAuthorities(roleHierarchy, userRoles);
-
+        System.out.println("4");
         //final user
         OAuth2User user = new DefaultOAuth2User(authorities, userInfo.getClaims(), oidcConfiguration.getUserNameAttribute());
-
+        System.out.println("5");
         // create a cachable item for storing all this information
         return new UserInfoCacheItem(bearer.getToken(), expireTime, user, authorities);
     }
@@ -223,6 +238,7 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
      */
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        System.out.println("Antonio GeonetworkJwtAuthenticationProvider.authenticate");
         BearerTokenAuthenticationToken bearer = (BearerTokenAuthenticationToken) authentication;
 
         // has this access token been evaluated before?
@@ -252,6 +268,11 @@ public class GeonetworkJwtAuthenticationProvider implements AuthenticationProvid
      */
     @Override
     public boolean supports(Class<?> authentication) {
+        System.out.println("Antonio GeonetworkJwtAuthenticationProvider.supports " + BearerTokenAuthenticationToken.class.isAssignableFrom(authentication));
+        if(!BearerTokenAuthenticationToken.class.isAssignableFrom(authentication)) {
+            new Exception().printStackTrace();
+            System.out.println(authentication.toString());
+        }
         return BearerTokenAuthenticationToken.class.isAssignableFrom(authentication);
     }
 

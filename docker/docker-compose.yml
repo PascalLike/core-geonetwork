@@ -1,50 +1,103 @@
-version: '3.1'
 volumes:
-  geonetwork:
+  esdata:
+  pgdata:
+  pglog:
 
 services:
-  geonetwork:
-    image: geonetwork:3.99.0
-    restart: always
-    ports:
-      - 8080:8080
-    environment:
-      DATA_DIR: /var/lib/geonetwork_data
-      ES_HOST: elasticsearch
-      ES_PROTOCOL: http
-      ES_PORT: 9200
-      KB_URL: http://kibana:5601
-
-      # Note: defining the following variable will activate the postgresql
-      # configuration and will require an external database (see the database
-      # service below)
-      POSTGRES_DB_HOST: database
-
-      POSTGRES_DB_NAME: geonetwork
-      POSTGRES_DB_USERNAME: geonetwork
-      POSTGRES_DB_PASSWORD: geonetwork
-
-    volumes:
-      - geonetwork:/var/lib/geonetwork_data
-    depends_on:
-      - kibana
-      - elasticsearch
-      - database
-
-  elasticsearch:
-    image: elasticsearch:7.6.2
-    environment:
-      discovery.type: single-node
-
-  kibana:
-    image: kibana:7.6.2
-    volumes:
-      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
-
-  database:
-    image: mdillon/postgis
+  postgres:
+    image: postgis/postgis:11-2.5
     environment:
       POSTGRES_USER: geonetwork
       POSTGRES_PASSWORD: geonetwork
       POSTGRES_DB: geonetwork
+    command: [ "postgres",
+               "-c", "log_statement=all",
+               "-c", "logging_collector=true",
+               "-c", "log_file_mode=0644",
+               "-c", "log_directory=/var/log/postgresql",
+               "-c", "log_filename=postgresql.log" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - pglog:/var/log/postgresql
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+          limits:
+            cpus: '1'
+            memory: 1G
 
+#   geonetwork:
+#     build: ../.
+#     env_file:
+#       - .env
+#     volumes:
+#       - geonetwork_catalogue_data:/catalogue-data
+#       - ./config.properties:/usr/local/tomcat/webapps/geonetwork/WEB-INF/config.properties
+#     depends_on:
+#       - postgres
+#       - elasticsearch
+# # Commentare tutta la sezione deploy
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '2'
+#           memory: 2G
+#     networks:
+#       - gn-network
+
+  elasticsearch:
+    image: elasticsearch:7.17.10
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: "curl -s http://localhost:9200 >/dev/null || exit 1"
+      interval: 10s
+      timeout: 2s
+      retries: 10
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xms1G -Xmx1G"
+      discovery.type: single-node
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 6G
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    ports:
+      - 8282:8080
+    environment:
+      - CLIENT_SECRET=geonetwork # predefined client secret
+      - KEYCLOAK_ADMIN=geonetwork # default user name and password of keycloak admin
+      - KEYCLOAK_ADMIN_PASSWORD=geonetwork
+      - KC_HOSTNAME=localhost # to be changed in prodection
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HOSTNAME_STRICT=false
+      - KC_DB=postgres #db
+      - KC_DB_URL_HOST=postgres
+      - KC_DB_URL_DATABASE=geonetwork
+      - KC_DB_USERNAME=geonetwork
+      - KC_DB_PASSWORD=geonetwork
+      - KC_OVERRIDE=true # skip override of data if already exists
+    command: -v start --http-enabled=true 
+    depends_on:
+      - postgres

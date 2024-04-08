@@ -46,6 +46,7 @@ public class UserInfoAccessTokenRolesResolver implements UserRolesResolver {
 
 
     List<String> resolveRoles(OidcUserInfo userInfo, String pathToRoles) {
+        System.out.println("Antonio UserInfoAccessTokenRolesResolver.resolveRoles 1");
         if ((userInfo == null) || (pathToRoles == null))
             return null;
 
@@ -53,6 +54,7 @@ public class UserInfoAccessTokenRolesResolver implements UserRolesResolver {
     }
 
     List<String> resolveRoles(Map claims, String pathToRoles) {
+        System.out.println("Antonio UserInfoAccessTokenRolesResolver.resolveRoles 2");
         if ((claims == null) || (pathToRoles == null))
             return null;
         return roleProcessor.getTokenRoles(claims, pathToRoles);
@@ -61,6 +63,7 @@ public class UserInfoAccessTokenRolesResolver implements UserRolesResolver {
 
     @Override
     public List<String> resolveRoles(String tokenValue, Map claims, OidcUserInfo userInfo) {
+        System.out.println("Antonio UserInfoAccessTokenRolesResolver.resolveRoles 3");
         String pathToRoles = oidcConfiguration.getIdTokenRoleLocation();
         List<String> result = resolveRoles(userInfo, pathToRoles);
         if ((result == null) || (result.isEmpty()))

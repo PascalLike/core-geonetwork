@@ -44,7 +44,7 @@
   <bean id="openidconnectClientRegistration" class="org.fao.geonet.kernel.security.openidconnect.GeonetworkClientRegistrationProvider">
     <constructor-arg value="${OPENIDCONNECT_SERVERMETADATA_FNAME:#{''}}"/>
     <constructor-arg value="${OPENIDCONNECT_SERVERMETADATA_JSON_TEXT:#{''}}"/>
-    <constructor-arg value="${OPENIDCONNECT_SERVERMETADATA_CONFIG_URL:#{''}}"/>
+    <constructor-arg value="http://localhost:8282/realms/geonetwork/.well-known/openid-configuration"/>
     <constructor-arg ref="openidconnectConfiguration"/>
   </bean>
 
