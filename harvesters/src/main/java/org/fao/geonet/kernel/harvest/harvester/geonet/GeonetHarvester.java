@@ -75,6 +75,9 @@ public class GeonetHarvester extends AbstractHarvester<HarvestResult, GeonetPara
             harvesterSettingsManager.add("id:" + groupID, "name", g.name);
             harvesterSettingsManager.add("id:" + groupID, "policy", g.policy);
         }
+
+        // DCAT custom
+        harvesterSettingsManager.add("id:" + siteId, "resourceUriPattern", params.resourceUriPattern);
     }
 
     public void addHarvestInfo(Element info, String id, String uuid) {

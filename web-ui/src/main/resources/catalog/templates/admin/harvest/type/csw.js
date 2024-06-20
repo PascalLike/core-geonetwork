@@ -24,7 +24,8 @@ var gnHarvestercsw = {
         "outputSchema": "http://www.isotc211.org/2005/gmd",
         "sortBy": "identifier:A",
         "queryScope": "local",
-        "hopCount": 2
+        "hopCount": 2,
+        "resourceUriPattern": ""
       },
       "content" : {
         "validate" : "NOVALIDATION",
@@ -113,6 +114,7 @@ var gnHarvestercsw = {
       + '    <sortBy>' + h.site.sortBy + '</sortBy>'
       + '    <queryScope>' + h.site.queryScope + '</queryScope>'
       + '    <hopCount>' + h.site.hopCount + '</hopCount>'
+      + '    <resourceUriPattern>' + h.site.resourceUriPattern + '</resourceUriPattern>'
       + '  </site>'
       + gnHarvestercsw.buildResponseCSWBBOXFilter($scope)
       + gnHarvestercsw.buildResponseCSWFilter($scope)

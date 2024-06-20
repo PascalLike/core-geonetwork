@@ -23,6 +23,7 @@
 
 package org.fao.geonet.util;
 
+import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +55,7 @@ import org.fao.geonet.api.records.attachments.Store;
 import org.fao.geonet.constants.Geonet;
 import org.fao.geonet.domain.*;
 import org.fao.geonet.kernel.*;
+import org.fao.geonet.kernel.datamanager.IMetadataUtils;
 import org.fao.geonet.kernel.datamanager.base.BaseMetadataUtils;
 import org.fao.geonet.kernel.search.CodeListTranslator;
 import org.fao.geonet.kernel.search.EsSearchManager;
@@ -61,13 +63,11 @@ import org.fao.geonet.kernel.search.Translator;
 import org.fao.geonet.kernel.security.SecurityProviderConfiguration;
 import org.fao.geonet.kernel.setting.SettingInfo;
 import org.fao.geonet.kernel.setting.SettingManager;
+import org.fao.geonet.kernel.setting.Settings;
 import org.fao.geonet.kernel.url.UrlChecker;
 import org.fao.geonet.languages.IsoLanguagesMapper;
 import org.fao.geonet.lib.Lib;
-import org.fao.geonet.repository.IsoLanguageRepository;
-import org.fao.geonet.repository.SourceRepository;
-import org.fao.geonet.repository.UiSettingsRepository;
-import org.fao.geonet.repository.UserRepository;
+import org.fao.geonet.repository.*;
 import org.fao.geonet.schema.iso19139.ISO19139Namespaces;
 import org.fao.geonet.utils.Log;
 import org.fao.geonet.utils.Xml;
@@ -1621,5 +1621,81 @@ public final class XslUtil {
         WebAnalyticsConfiguration webAnalyticsConfiguration = applicationContext.getBean(WebAnalyticsConfiguration.class);
 
         return webAnalyticsConfiguration.getJavascriptCode();
+    }
+
+    // DCAT Custom
+    public static String getThesaurusTitleByName(String id) {
+        ApplicationContext applicationContext = ApplicationContextHolder.get();
+        ThesaurusManager thesaurusManager = applicationContext.getBean(ThesaurusManager.class);
+        Thesaurus thesaurus = thesaurusManager.getThesaurusByName(id);
+        return thesaurus == null ? "" : thesaurus.getTitle();
+    }
+
+    /**
+     * DCAT custom
+     * Generate a UUID based off a string for consistent results
+     *
+     * @param str
+     * @return UUID string
+     */
+    public static String uuidFromString(String str) {
+        return UUID.nameUUIDFromBytes(str.getBytes()).toString();
+    }
+
+    // DCAT Custom
+    public static String getRecordResourceURI(String uuid) {
+        var searchManager = ApplicationContextHolder.get().getBean(EsSearchManager.class);
+
+        try {
+            Set<String> source = new HashSet<>();
+            source.add("rdfResourceIdentifier");
+            SearchResponse response = searchManager.query(String.format("+uuid:%s", uuid), null, source, 0, 1);
+
+            if (response.hits().hits().isEmpty()) {
+                return null;
+            }
+            ObjectMapper objectMapper = new ObjectMapper();
+
+            Hit h = (Hit) response.hits().hits().get(0);
+            Object rdfResourceIdentifier = objectMapper.convertValue(h.source(), Map.class).get("rdfResourceIdentifier");
+            if (rdfResourceIdentifier instanceof String) {
+                return (String) rdfResourceIdentifier;
+            } else if (rdfResourceIdentifier instanceof ArrayList) {
+                return ((ArrayList<String>) rdfResourceIdentifier).get(0);
+            } else {
+                throw new Exception("Cannot obtain resource URI from " + rdfResourceIdentifier.toString());
+            }
+
+        } catch (Exception e) {
+            Log.error(Log.JEEVES, "GET Record resource identifier '" + uuid + "' error: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
+     * DCAT Custom
+     * Get the metadata URI build pattern based on the source catalog
+     *
+     * @param uuid
+     */
+    public static String getUriPattern(String uuid) {
+        ApplicationContext context = ApplicationContextHolder.get();
+        IMetadataUtils metadataUtils = context.getBean(IMetadataUtils.class);
+
+        AbstractMetadata metadata = metadataUtils.findOneByUuid(uuid);
+
+        if (metadata != null && metadata.getHarvestInfo().isHarvested()) {
+            HarvesterSettingRepository harvesterSetting = context.getBean(HarvesterSettingRepository.class);
+            HarvesterSetting uuidSetting = harvesterSetting.findOneByNameAndStoredValueLike("uuid", metadata.getHarvestInfo().getUuid());
+            if (uuidSetting != null && uuidSetting.getParent() != null) {
+                List<HarvesterSetting> resourceUriPatternSetting = harvesterSetting.findChildrenByName(uuidSetting.getParent().getId(), "resourceUriPattern");
+                if (resourceUriPatternSetting.size() > 0 && StringUtils.isNotEmpty(resourceUriPatternSetting.get(0).getValue())) {
+                    return resourceUriPatternSetting.get(0).getValue();
+                }
+            }
+        }
+
+        SettingManager sm = context.getBean(SettingManager.class);
+        return sm.getValue(Settings.SYSTEM_RESOURCE_PREFIX) + "/{resourceType}/{resourceUuid}";
     }
 }

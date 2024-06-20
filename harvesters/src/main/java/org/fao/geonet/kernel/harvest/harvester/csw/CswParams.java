@@ -53,6 +53,9 @@ public class CswParams extends AbstractParams {
 
     public Integer hopCount;
 
+    // DCAT custom
+    public String resourceUriPattern;
+
     /**
      * The filter is a process (see schema/process folder) which depends on the schema. It could be
      * composed of parameter which will be sent to XSL transformation using the following syntax :
@@ -105,6 +108,8 @@ public class CswParams extends AbstractParams {
 
         bboxFilter = node.getChild("bboxFilter");
 
+        // DCAT custom
+        resourceUriPattern = Util.getParam(site, "resourceUriPattern", "");
     }
 
     /**
@@ -136,6 +141,9 @@ public class CswParams extends AbstractParams {
         }
 
         bboxFilter = node.getChild("bboxFilter");
+
+        // DCAT custom
+        resourceUriPattern = Util.getParam(site, "resourceUriPattern", "");
     }
 
     /**
@@ -158,6 +166,9 @@ public class CswParams extends AbstractParams {
 
         copy.eltFilters = eltFilters;
         copy.bboxFilter = bboxFilter;
+
+        // DCAT custom
+        copy.resourceUriPattern = resourceUriPattern;
 
         return copy;
     }

@@ -31,6 +31,9 @@
     <sortBy>
       <xsl:value-of select="sortBy/value"/>
     </sortBy>
+    <resourceUriPattern>
+      <xsl:value-of select="resourceUriPattern/value"/>
+    </resourceUriPattern>
   </xsl:template>
 
 

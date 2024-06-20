@@ -60,6 +60,9 @@ public class GeonetParams extends AbstractParams {
 
     private ArrayList<Group> alCopyPolicy = new ArrayList<Group>();
 
+    // VL
+    public String resourceUriPattern;
+
     public GeonetParams(DataManager dm) {
         super(dm);
     }
@@ -79,6 +82,9 @@ public class GeonetParams extends AbstractParams {
         createRemoteCategory = Util.getParam(site, "createRemoteCategory", false);
         mefFormatFull = Util.getParam(site, "mefFormatFull", false);
         xslfilter = Util.getParam(site, "xslfilter", "");
+
+        // VL
+        resourceUriPattern = Util.getParam(site, "resourceUriPattern", "");
 
         //checkPort(port);
         addSearches(searches);
@@ -109,6 +115,9 @@ public class GeonetParams extends AbstractParams {
 
         if (policy != null)
             addCopyPolicy(policy);
+
+        // DCAT custom
+        resourceUriPattern = Util.getParam(site, "resourceUriPattern", "");
     }
 
     public Iterable<Search> getSearches() {
@@ -151,6 +160,9 @@ public class GeonetParams extends AbstractParams {
 
         for (Group g : alCopyPolicy)
             copy.alCopyPolicy.add(g.copy());
+
+        // VL
+        copy.resourceUriPattern = resourceUriPattern;
 
         return copy;
     }

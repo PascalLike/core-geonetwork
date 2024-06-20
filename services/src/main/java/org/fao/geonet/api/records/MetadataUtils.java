@@ -60,6 +60,7 @@ import org.fao.geonet.repository.MetadataValidationRepository;
 import org.fao.geonet.repository.SourceRepository;
 import org.fao.geonet.repository.specification.MetadataValidationSpecs;
 import org.fao.geonet.services.relations.Get;
+import org.fao.geonet.util.XslUtil;
 import org.fao.geonet.utils.Log;
 import org.jdom.Content;
 import org.jdom.Element;
@@ -174,16 +175,27 @@ public class MetadataUtils {
         // brothers&sisters
         //
         // * All of them could be remote records
+        String mdURI = XslUtil.getRecordResourceURI(md.getUuid());
         Arrays.stream(types).forEach(type -> {
             if (type == RelatedItemType.associated
                 || type == RelatedItemType.hasfeaturecats
                 || type == RelatedItemType.services
                 || type == RelatedItemType.hassources) {
-                queries.put(type,
-                    new RelatedTypeDetails(
-                        String.format("+%s:\"%s\"",
-                            RELATED_INDEX_FIELDS.get(type.value()), md.getUuid())
-                    ));
+                // VL Custom
+                String luceneQuery;
+                if (mdURI != null) {
+                    luceneQuery = String.format(
+                        "%s:\"%s\" OR %s:\"%s\"",
+                        RELATED_INDEX_FIELDS.get(type.value()),
+                        md.getUuid(),
+                        RELATED_INDEX_FIELDS.get(type.value()),
+                        mdURI
+                    );
+                } else {
+                    luceneQuery = String.format("+%s:\"%s\"", RELATED_INDEX_FIELDS.get(type.value()), md.getUuid());
+                }
+
+                queries.put(type, new RelatedTypeDetails(luceneQuery));
             } else if (schemaPlugin != null
                 && (type == RelatedItemType.siblings
                 || type == RelatedItemType.parent
