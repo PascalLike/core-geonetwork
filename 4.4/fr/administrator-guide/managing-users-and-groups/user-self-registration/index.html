@@ -20,7 +20,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/geonetwork-logo.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.25">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.29">
     
     
       
@@ -28,7 +28,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.76a95c52.min.css">
       
         
         <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
@@ -214,7 +214,7 @@
       
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initialisation de la recherche
@@ -2018,11 +2018,14 @@
 <p>The fields in this form are self-explanatory except for the following:</p>
 <ul>
 <li><strong>Email</strong>: The user's email address. This is mandatory and will be used as the username.</li>
-<li><strong>Profile</strong>: By default, self-registered users are given the <code>Registered User</code> profile (see previous section). If any other profile is selected:<ul>
+<li><strong>Requested profile</strong>: By default, self-registered users are given the <code>Registered User</code> profile (see previous section). If any other profile is selected:<ul>
 <li>the user will still be given the <code>Registered User</code> profile</li>
 <li>an email will be sent to the Email address nominated in the Feedback section of the 'System Administration' menu, informing them of the request for a more privileged profile</li>
 </ul>
 </li>
+<li><strong>Requested group</strong>: By default, self-registered users are not assigned to any group. If a group is selected:</li>
+<li>the user will still not be assigned to any group</li>
+<li>an email will be sent to the Email address nominated in the Feedback section of the 'System Administration' menu, informing them of the requested group.</li>
 </ul>
 <h2 id="what-happens-when-a-user-self-registers">What happens when a user self-registers?</h2>
 <p>When a user self-registration occurs, the user receives an email with the new account details that looks something like the following:</p>
@@ -2276,7 +2279,7 @@ The Greenhouse GeoNetwork Site team
     <script id="__config" type="application/json">{"base": "../../../..", "features": ["toc.follow", "navigation.tracking", "navigation.top", "navigation.tabs", "navigation.prune", "navigation.indexes", "navigation.footer", "header.autohide", "content.tabs.link", "content.code.copy", "content.action.view", "content.action.edit", "announce.dismiss"], "search": "../../../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": {"alias": true, "default": "stable", "provider": "mike"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.081f42fc.min.js"></script>
+      <script src="../../../../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
     
   </body>
