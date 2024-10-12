@@ -33,7 +33,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
 import static org.fao.geonet.kernel.security.openidconnect.GeonetworkClientRegistrationProvider.CLIENTREGISTRATION_NAME;
-
+import java.util.Map;
 /**
  * This is to make things work well in Geonetwork.
  * Spring's oauth allows for multiple oauth providers - and the /signin/... path would normally indicate which one
@@ -83,7 +83,14 @@ public class HardcodedRegistrationIdOAuth2AuthorizationRequestResolver implement
             }
         };
         try {
-            return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+            OAuth2AuthorizationRequest out = wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+            System.out.printf("DEBUG HOME MADE clientid %s!", out.getClientId());
+            for (Map.Entry<String, Object> entry : out.getAttributes().entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                System.out.println("DEBUG HOME MADE Key: " + key + ", Value: " + (value != null ? value.toString() : "null"));
+            }
+            return out;
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -109,7 +116,14 @@ public class HardcodedRegistrationIdOAuth2AuthorizationRequestResolver implement
             }
         };
         try {
-            return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+            OAuth2AuthorizationRequest out = wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+            System.out.printf("DEBUG HOME MADE clientid %s!", out.getClientId());
+            for (Map.Entry<String, Object> entry : out.getAttributes().entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                System.out.println("DEBUG HOME MADE Key: " + key + ", Value: " + (value != null ? value.toString() : "null"));
+            }
+            return out;
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
