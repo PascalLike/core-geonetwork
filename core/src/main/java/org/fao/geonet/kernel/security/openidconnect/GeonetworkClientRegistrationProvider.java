@@ -262,10 +262,11 @@ public class GeonetworkClientRegistrationProvider {
         }
 
         builder.clientId(clientId)
-            .clientSecret(clientSecret)
+//            .clientSecret(clientSecret)
             .clientName("geonetwork via spring security");
 
         ClientRegistration clientRegistration = builder.build();
+        System.out.printf("DEBUG HOME MADE clientRegistration %s!", clientRegistration.toString());
         return clientRegistration;
     }
 
