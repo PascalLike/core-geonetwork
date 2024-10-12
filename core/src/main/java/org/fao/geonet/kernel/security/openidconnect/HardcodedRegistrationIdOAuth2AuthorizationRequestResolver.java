@@ -82,7 +82,11 @@ public class HardcodedRegistrationIdOAuth2AuthorizationRequestResolver implement
                 return value;
             }
         };
-        return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+        try {
+            return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+        } catch (Exception e) {
+            e.printStacktrace();
+        }
     }
 
     //defaults the "action" to "authorize" and uses the GN default oidc provider name
@@ -103,7 +107,11 @@ public class HardcodedRegistrationIdOAuth2AuthorizationRequestResolver implement
                 return value;
             }
         };
-        return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+        try {
+            return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
+        } catch (Exception e) {
+            e.printStacktrace();
+        }
     }
 
 }
