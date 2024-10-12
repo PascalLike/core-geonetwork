@@ -85,7 +85,8 @@ public class HardcodedRegistrationIdOAuth2AuthorizationRequestResolver implement
         try {
             return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
         } catch (Exception e) {
-            e.printStacktrace();
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -110,7 +111,8 @@ public class HardcodedRegistrationIdOAuth2AuthorizationRequestResolver implement
         try {
             return wrappedResolver.resolve(wrappedRequest, CLIENTREGISTRATION_NAME);
         } catch (Exception e) {
-            e.printStacktrace();
+            e.printStackTrace();
+            throw e;
         }
     }
 
