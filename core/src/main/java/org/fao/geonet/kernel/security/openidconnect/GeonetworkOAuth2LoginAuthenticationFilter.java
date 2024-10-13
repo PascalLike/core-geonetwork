@@ -66,7 +66,7 @@ public class GeonetworkOAuth2LoginAuthenticationFilter extends OAuth2LoginAuthen
                                               HttpServletResponse response, AuthenticationException failed)
         throws IOException, ServletException {
         System.out.println("DEBUG HOME MADE GeonetworkOAuth2LoginAuthenticationFilter.unsuccessfulAuthentication");
-
+        failed.printStackTrace();
         super.unsuccessfulAuthentication(request, response, failed);
     }
 
