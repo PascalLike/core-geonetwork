@@ -41,6 +41,9 @@ import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
+import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+
 import java.util.Map;
 
 /**
@@ -80,10 +83,25 @@ public class LoggingOidcAuthorizationCodeAuthenticationProvider extends OidcAuth
      */
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        Log.debug(Geonet.SECURITY,"DEBUG HOME MADE " + authentication.getCredentials().toString());
-        Log.debug(Geonet.SECURITY,"DEBUG HOME MADE " + authentication.getDetails().toString());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF");
+        OAuth2LoginAuthenticationToken authorizationCodeAuthentication = (OAuth2LoginAuthenticationToken) authentication;
+		OAuth2AuthorizationRequest authorizationRequest = authorizationCodeAuthentication.getAuthorizationExchange()
+			.getAuthorizationRequest();
+		OAuth2AuthorizationResponse authorizationResponse = authorizationCodeAuthentication.getAuthorizationExchange()
+			.getAuthorizationResponse();
+
+
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getClientRegistration());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getPrincipal());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getAccessToken().getTokenValue());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getAccessToken().getIssuedAt().toString());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getAccessToken().getExpiresAt().toString());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationResponse.getRedirectUri());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationResponse.getState());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationResponse.getCode());
+        
+        
         Authentication result = super.authenticate(authentication);
-        log((OAuth2LoginAuthenticationToken) result);
         if (oidcConfiguration.isLogSensitiveInformation() && (authentication instanceof OAuth2LoginAuthenticationToken)) {
             log((OAuth2LoginAuthenticationToken) result);
         }
