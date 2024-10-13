@@ -39,6 +39,8 @@
 
         <sec:intercept-url pattern="/api/.*" access="permitAll"/>
 
+        <sec:intercept-url pattern="/login/.*" access="permitAll"/>
+
         <!-- Secure proxy URL if needed using proxy.securityMode
         or restrict to some host only. -->
         <!--<sec:intercept-url pattern="/proxy\?url=.*(www.brgm.fr|www.ifremer.fr).*" access="permitAll"/>-->
