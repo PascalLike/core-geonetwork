@@ -80,7 +80,10 @@ public class LoggingOidcAuthorizationCodeAuthenticationProvider extends OidcAuth
      */
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        Log.debug(Geonet.SECURITY,"DEBUG HOME MADE " + authentication.getCredentials().toString());
+        Log.debug(Geonet.SECURITY,"DEBUG HOME MADE " + authentication.getDetails().toString());
         Authentication result = super.authenticate(authentication);
+        log((OAuth2LoginAuthenticationToken) result);
         if (oidcConfiguration.isLogSensitiveInformation() && (authentication instanceof OAuth2LoginAuthenticationToken)) {
             log((OAuth2LoginAuthenticationToken) result);
         }
