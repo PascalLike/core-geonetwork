@@ -46,6 +46,8 @@ public class OAuth2SecurityProviderUtil implements SecurityProviderUtil {
 
     // setup for BEARER authentication
     public String getSSOAuthenticationHeaderValue() {
+        System.out.println("DEBUG HOME MADE OAuth2SecurityProviderUtil.getSSOAuthenticationHeaderValue");
+
         if (SecurityContextHolder.getContext().getAuthentication().getPrincipal() instanceof OidcUser) {
             OidcUser user = (OidcUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
@@ -55,6 +57,8 @@ public class OAuth2SecurityProviderUtil implements SecurityProviderUtil {
     }
 
     public UserDetails getUserDetails(Authentication auth)  {
+        System.out.println("DEBUG HOME MADE OAuth2SecurityProviderUtil.getUserDetails1");
+
         try {
             return getUserDetails(auth, false);
         } catch (Exception e) {
@@ -66,6 +70,9 @@ public class OAuth2SecurityProviderUtil implements SecurityProviderUtil {
     // get the user's details (spring).  This might update the GN database with the user
     // (see underlying  oidcUser2GeonetworkUser#getUserDetail for when).
     public UserDetails getUserDetails(Authentication auth, boolean withDbUpdate) throws Exception {
+        System.out.println("DEBUG HOME MADE OAuth2SecurityProviderUtil.getUserDetails2");
+
+
         if (auth != null && auth.getPrincipal() instanceof OidcUser) {
             OidcUser user = (OidcUser) auth.getPrincipal();
             OidcIdToken idToken = user.getIdToken();

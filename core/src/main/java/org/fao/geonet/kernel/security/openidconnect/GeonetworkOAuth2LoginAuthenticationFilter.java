@@ -65,6 +65,8 @@ public class GeonetworkOAuth2LoginAuthenticationFilter extends OAuth2LoginAuthen
     protected void unsuccessfulAuthentication(HttpServletRequest request,
                                               HttpServletResponse response, AuthenticationException failed)
         throws IOException, ServletException {
+        System.out.println("DEBUG HOME MADE GeonetworkOAuth2LoginAuthenticationFilter.unsuccessfulAuthentication");
+
         super.unsuccessfulAuthentication(request, response, failed);
     }
 
@@ -81,6 +83,8 @@ public class GeonetworkOAuth2LoginAuthenticationFilter extends OAuth2LoginAuthen
                                             FilterChain chain,
                                             Authentication authResult)
         throws IOException, ServletException {
+
+        System.out.println("DEBUG HOME MADE GeonetworkOAuth2LoginAuthenticationFilter.successfulAuthentication");
 
         if (authResult == null) {
             throw new IOException("authresult is null!"); // this shouldn't happen

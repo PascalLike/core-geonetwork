@@ -67,6 +67,9 @@ public class GeonetworkOidcUserService extends OidcUserService {
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
         OidcUser user = super.loadUser(userRequest);
 
+        System.out.println("DEBUG HOME MADE GeonetworkOidcUserService.loadUser");
+
+
         Collection<? extends GrantedAuthority> authorities;
 
         if (!oidcConfiguration.isUpdateProfile()) {

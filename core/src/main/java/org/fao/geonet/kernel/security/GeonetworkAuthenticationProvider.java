@@ -58,6 +58,8 @@ public class GeonetworkAuthenticationProvider extends AbstractUserDetailsAuthent
         throws AuthenticationException {
         PasswordEncoder encoder = ApplicationContextHolder.get().getBean(PasswordEncoder.class);
 
+        System.out.println("DEBUG HOME MADE GeonetworkAuthenticationProvider.additionalAuthenticationChecks");
+
 
         User gnDetails = (User) userDetails;
 
@@ -78,6 +80,8 @@ public class GeonetworkAuthenticationProvider extends AbstractUserDetailsAuthent
     protected UserDetails retrieveUser(String username,
                                        UsernamePasswordAuthenticationToken authentication)
         throws AuthenticationException {
+        System.out.println("DEBUG HOME MADE GeonetworkAuthenticationProvider.retrieveUser");
+
         try {
             final ConfigurableApplicationContext applicationContext = ApplicationContextHolder.get();
             PasswordEncoder encoder = applicationContext.getBean(PasswordEncoder.class);
