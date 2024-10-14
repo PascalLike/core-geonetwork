@@ -75,6 +75,7 @@ public class LoggingOidcAuthorizationCodeAuthenticationProvider extends OidcAuth
         OAuth2UserService<OidcUserRequest, OidcUser> userService,
         OIDCConfiguration oidcConfiguration) {
         super(accessTokenResponseClient, userService);
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF SUPER! " + accessTokenResponseClient.toString());
         this.oidcConfiguration = oidcConfiguration;
     }
 
@@ -83,7 +84,7 @@ public class LoggingOidcAuthorizationCodeAuthenticationProvider extends OidcAuth
      */
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF");
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF ");
         OAuth2LoginAuthenticationToken authorizationCodeAuthentication = (OAuth2LoginAuthenticationToken) authentication;
 		OAuth2AuthorizationRequest authorizationRequest = authorizationCodeAuthentication.getAuthorizationExchange()
 			.getAuthorizationRequest();
@@ -91,16 +92,16 @@ public class LoggingOidcAuthorizationCodeAuthenticationProvider extends OidcAuth
 			.getAuthorizationResponse();
 
 
-        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getClientRegistration());
-        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getPrincipal());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF getClientRegistration " + authorizationCodeAuthentication.getClientRegistration());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF getPrincipal " + authorizationCodeAuthentication.getPrincipal());
         if(authorizationCodeAuthentication.getAccessToken()!=null) {
-            Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getAccessToken().getTokenValue());
-            Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getAccessToken().getIssuedAt().toString());
-            Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationCodeAuthentication.getAccessToken().getExpiresAt().toString());
+            Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF " + authorizationCodeAuthentication.getAccessToken().getTokenValue());
+            Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF " + authorizationCodeAuthentication.getAccessToken().getIssuedAt().toString());
+            Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF " + authorizationCodeAuthentication.getAccessToken().getExpiresAt().toString());
         }
-        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationResponse.getRedirectUri());
-        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationResponse.getState());
-        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF" + authorizationResponse.getCode());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF getRedirectUri " + authorizationResponse.getRedirectUri());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF getState " + authorizationResponse.getState());
+        Log.debug(Geonet.SECURITY,"---> DEBUG HOME MADE STUFF getCode " + authorizationResponse.getCode());
         
         
         Authentication result = super.authenticate(authentication);
