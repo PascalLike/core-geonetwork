@@ -120,6 +120,7 @@ public class EsSearchManager implements ISearchManager {
             .add(Geonet.IndexFieldNames.RESOURCEABSTRACT)
             .add(Geonet.IndexFieldNames.RESOURCEABSTRACT + "Object")
             .add("operatesOn")
+            .add("rdfResourceIdentifier")
             .build();
 
         FIELDLIST_RELATED = ImmutableSet.<String>builder()
