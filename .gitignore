@@ -46,7 +46,7 @@ transifex/transifex-format/
 build/
 web-ui/LICENSE
 web-ui/tx
-datahub-integration/node/
+plugins/datahub-integration/node/
 
 # web-app, clear using: mvn -f web/pom.xml clean:clean@reset
 
